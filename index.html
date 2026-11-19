@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dev-Strike Deploy — Static Site Publisher for GitHub Pages</title>
+  <title>Dev-Strike Deploy — Live Static Web Publisher</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -14,68 +14,58 @@
       <div class="brand-badge">⚡</div>
       <div>
         <h1>Dev-Strike Deploy</h1>
-        <p>Instant GitHub Pages Bundler &amp; Live Sandbox</p>
+        <p>Instant Live Deployment &amp; Custom Path Publisher</p>
       </div>
     </div>
 
     <div class="topbar-actions">
-      <button type="button" class="btn btn-ghost" id="btnSample">Load Sample Project</button>
-      <button type="button" class="btn btn-primary" id="btnDeploy">🚀 Deploy &amp; Bundle</button>
+      <button type="button" class="btn btn-ghost" id="btnSample">Load Sample</button>
+      <button type="button" class="btn btn-primary" id="btnDeployNow">🚀 Deploy Live</button>
     </div>
   </header>
 
   <main class="container">
-    <!-- Domain / URL Configurator Card -->
+    <!-- Custom Website Path / Slug Configurator -->
     <section class="card domain-card">
       <div class="card-header">
         <div>
-          <h2>1. GitHub Pages Domain Configuration</h2>
-          <p class="sub">Set your GitHub username (root domain) or add an optional custom repository path.</p>
+          <h2>1. Custom Site Address</h2>
+          <p class="sub">Customize your site slug after the slash (<code>/custom-name</code>) and deploy a live build.</p>
         </div>
-        <span class="status-pill" id="modeBadge">Root Site (username.github.io)</span>
+        <span class="status-pill" id="deployStatus">Draft Mode</span>
       </div>
 
       <div class="domain-builder">
-        <span class="protocol">https://</span>
-        <div class="domain-input-group">
-          <input
-            type="text"
-            id="ghUser"
-            value="Dev-Strike"
-            placeholder="e.g. Strike-Dev"
-            aria-label="GitHub Username"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <span class="domain-suffix">.github.io</span>
-          <span class="domain-slash">/</span>
-          <input
-            type="text"
-            id="ghRepo"
-            value=""
-            placeholder="custom-path (optional)"
-            aria-label="Custom Repository Name"
-            autocomplete="off"
-            spellcheck="false"
-          />
-        </div>
+        <span class="domain-prefix">dev-strike.site</span>
+        <span class="domain-slash">/</span>
+        <input
+          type="text"
+          id="siteSlug"
+          value="strike-dev"
+          placeholder="e.g. Strike-Dev"
+          aria-label="Custom Website Name"
+          autocomplete="off"
+          spellcheck="false"
+        />
       </div>
 
       <div class="domain-footer">
         <div class="preview-url-box">
-          <span class="muted-label">Target URL:</span>
-          <a href="#deployPanel" id="targetUrlPreview" class="target-url">https://Dev-Strike.github.io</a>
-          <button type="button" class="icon-btn" id="btnCopyUrl" title="Copy Target URL">Copy</button>
+          <span class="muted-label">Live Deployment URL:</span>
+          <a href="#" id="liveUrlLink" target="_blank" rel="noopener noreferrer" class="target-url">
+            Not deployed yet — click Deploy Live
+          </a>
+          <button type="button" class="icon-btn" id="btnOpenTab" disabled>Open Tab ↗</button>
+          <button type="button" class="icon-btn" id="btnCopyUrl" disabled>Copy URL</button>
         </div>
         <p class="hint-text">
-          Leave <strong>custom-path</strong> empty if your repository is named <code>&lt;username&gt;.github.io</code> (no trailing slash).
+          Custom path active: <strong id="slugDisplay">/strike-dev</strong>
         </p>
       </div>
     </section>
 
-    <!-- Main Workspace: Editor + Optional Upload & Live Preview -->
+    <!-- Main Workspace: 3-File Editor + Optional Upload & Live Preview -->
     <section class="workspace-grid">
-      <!-- Left: Code Editor & Optional File Upload -->
       <div class="card editor-card">
         <div class="editor-toolbar">
           <div class="file-tabs" role="tablist">
@@ -90,22 +80,20 @@
             </button>
           </div>
 
-          <div class="upload-controls">
-            <label for="fileUpload" class="btn btn-outline btn-sm" title="Upload .html, .css, or .js files">
-              📁 Upload Files (Optional)
-            </label>
-            <input type="file" id="fileUpload" accept=".html,.htm,.css,.js" multiple hidden />
-          </div>
+          <label for="fileUpload" class="btn btn-outline btn-sm">
+            📁 Upload File (Optional)
+          </label>
+          <input type="file" id="fileUpload" accept=".html,.htm,.css,.js" multiple hidden />
         </div>
 
         <div class="drop-zone" id="dropZone">
           <textarea
             id="codeEditor"
             spellcheck="false"
-            placeholder="Write your code here or drag & drop .html / .css / .js files..."
+            placeholder="Write your code here or upload .html, .css, .js files..."
           ></textarea>
-          <div class="drop-overlay" id="dropOverlay">
-            <span>Drop your .html, .css, or .js files here</span>
+          <div class="drop-overlay">
+            <span>Drop .html, .css, or .js files to load</span>
           </div>
         </div>
 
@@ -113,39 +101,32 @@
           <span id="activeFileInfo">Editing: index.html</span>
           <div class="status-right">
             <span id="charCount">0 chars</span>
-            <button type="button" class="link-btn" id="btnClearCode">Clear Tab</button>
+            <button type="button" class="link-btn" id="btnClearTab">Clear</button>
           </div>
         </div>
       </div>
 
-      <!-- Right: Live Preview & Deployment Output -->
       <div class="card preview-card">
         <div class="preview-header">
           <div class="browser-dots">
             <span></span><span></span><span></span>
           </div>
-          <div class="browser-bar" id="browserBarUrl">https://Dev-Strike.github.io</div>
-          <button type="button" class="btn btn-sm btn-ghost" id="btnRefreshPreview">↻ Run</button>
+          <div class="browser-bar" id="browserBar">Preview Ready</div>
+          <button type="button" class="btn btn-sm btn-ghost" id="btnRunPreview">↻ Refresh</button>
         </div>
 
         <div class="iframe-wrap">
-          <iframe id="liveFrame" title="Live Site Preview" sandbox="allow-scripts allow-modals"></iframe>
+          <iframe id="liveFrame" title="Deployed Site Preview" sandbox="allow-scripts allow-modals"></iframe>
         </div>
 
-        <!-- Deployment Result Box -->
-        <div class="deploy-panel" id="deployPanel">
+        <div class="deploy-panel">
           <div class="deploy-info">
-            <span class="badge-live">READY TO PUBLISH</span>
-            <p id="deployInstruction">
-              GitHub Repository: <strong id="repoNameHint">Dev-Strike.github.io</strong>
-            </p>
+            <span class="badge-live" id="buildBadge">LOCAL SANDBOX</span>
+            <p id="buildSummary">Click <strong>Deploy Live</strong> to generate a live browser deployment.</p>
           </div>
           <div class="deploy-buttons">
-            <button type="button" class="btn btn-outline btn-sm" id="btnDownloadSingle">
-              ⬇ Download Single HTML
-            </button>
-            <button type="button" class="btn btn-primary btn-sm" id="btnDownloadBundle">
-              📦 Download 3 Files (HTML/CSS/JS)
+            <button type="button" class="btn btn-outline btn-sm" id="btnDownloadAll">
+              ⬇ Download HTML, CSS &amp; JS
             </button>
           </div>
         </div>
@@ -158,4 +139,3 @@
   <script src="script.js"></script>
 </body>
 </html>
-l
