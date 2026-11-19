@@ -3,13 +3,15 @@
 
   const $ = id => document.getElementById(id);
 
-  const ghUser = $('ghUser');
-  const ghRepo = $('ghRepo');
-  const modeBadge = $('modeBadge');
-  const targetUrlPreview = $('targetUrlPreview');
-  const browserBarUrl = $('browserBarUrl');
-  const repoNameHint = $('repoNameHint');
+  const siteSlug = $('siteSlug');
+  const slugDisplay = $('slugDisplay');
+  const deployStatus = $('deployStatus');
+  const liveUrlLink = $('liveUrlLink');
+  const btnOpenTab = $('btnOpenTab');
   const btnCopyUrl = $('btnCopyUrl');
+  const browserBar = $('browserBar');
+  const buildBadge = $('buildBadge');
+  const buildSummary = $('buildSummary');
 
   const codeEditor = $('codeEditor');
   const activeFileInfo = $('activeFileInfo');
@@ -19,13 +21,13 @@
   const liveFrame = $('liveFrame');
 
   const btnSample = $('btnSample');
-  const btnDeploy = $('btnDeploy');
-  const btnRefreshPreview = $('btnRefreshPreview');
-  const btnClearCode = $('btnClearCode');
-  const btnDownloadSingle = $('btnDownloadSingle');
-  const btnDownloadBundle = $('btnDownloadBundle');
+  const btnDeployNow = $('btnDeployNow');
+  const btnRunPreview = $('btnRunPreview');
+  const btnClearTab = $('btnClearTab');
+  const btnDownloadAll = $('btnDownloadAll');
 
   let activeTab = 'html';
+  let currentBlobUrl = null;
 
   const files = {
     html: `<!DOCTYPE html>
@@ -33,82 +35,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dev-Strike Portfolio</title>
+  <title>Strike-Dev Live Page</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="hero">
-    <span class="tag">DEPLOYED ON GITHUB PAGES</span>
-    <h1>Hello, I'm <span id="userDisplay">Dev-Strike</span> ⚡</h1>
-    <p>Built with clean HTML, CSS, and JavaScript — ready for instant static hosting.</p>
-    <button id="pingBtn">Test Interactive JS</button>
-  </div>
+  <main class="box">
+    <h1>Live Site: <span id="pathLabel">/strike-dev</span></h1>
+    <p>This website is rendered directly from your HTML, CSS, and JavaScript code.</p>
+    <button id="actionBtn">Click Me</button>
+  </main>
   <script src="script.js"></script>
 </body>
 </html>`,
-    css: `* {
-  box-sizing: border-box;
+    css: `body {
   margin: 0;
-  padding: 0;
-}
-body {
   font-family: system-ui, -apple-system, sans-serif;
-  background: linear-gradient(135deg, #0f172a, #1e1b4b);
+  background: #0b1020;
   color: #f8fafc;
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  display: grid;
+  place-items: center;
 }
-.hero {
-  max-width: 560px;
+.box {
   text-align: center;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  padding: 40px 32px;
-  border-radius: 20px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  padding: 36px 28px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
-.tag {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: rgba(56, 189, 248, 0.18);
+span {
   color: #38bdf8;
-  margin-bottom: 16px;
-}
-h1 {
-  font-size: 32px;
-  margin-bottom: 12px;
-}
-h1 span {
-  color: #818cf8;
-}
-p {
-  color: #cbd5e1;
-  margin-bottom: 24px;
-  line-height: 1.6;
 }
 button {
+  margin-top: 16px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
   background: #6366f1;
   color: #fff;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.15s, background 0.15s;
-}
-button:hover {
-  background: #4f46e5;
-  transform: translateY(-2px);
 }`,
-    js: `document.getElementById('pingBtn')?.addEventListener('click', () => {
-  alert('🚀 Website is live and JavaScript works smoothly!');
+    js: `document.getElementById('actionBtn')?.addEventListener('click', () => {
+  alert('Live deployment is active!');
 });`
   };
 
@@ -120,27 +89,15 @@ button:hover {
     el._timer = setTimeout(() => el.classList.remove('show'), 2400);
   }
 
-  function sanitizeSlug(str) {
-    return str.trim().replace(/[^a-zA-Z0-9-_]/g, '');
+  function cleanSlug(val) {
+    const cleaned = val.trim().replace(/[^a-zA-Z0-9-_]/g, '');
+    return cleaned || 'strike-dev';
   }
 
-  function updateDomainUI() {
-    const user = sanitizeSlug(ghUser.value) || 'Dev-Strike';
-    const repo = sanitizeSlug(ghRepo.value);
-    const fullUrl = repo
-      ? `https://${user}.github.io/${repo}`
-      : `https://${user}.github.io`;
-
-    targetUrlPreview.textContent = fullUrl;
-    browserBarUrl.textContent = fullUrl;
-
-    if (repo) {
-      modeBadge.textContent = 'Project Site (/custom-path)';
-      repoNameHint.textContent = `${user}/${repo}`;
-    } else {
-      modeBadge.textContent = 'Root Site (username.github.io)';
-      repoNameHint.textContent = `${user}.github.io`;
-    }
+  function updateSlugUI() {
+    const slug = cleanSlug(siteSlug.value);
+    slugDisplay.textContent = `/${slug}`;
+    browserBar.textContent = `https://dev-strike.site/${slug}`;
   }
 
   function switchTab(lang) {
@@ -151,8 +108,8 @@ button:hover {
       btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    const names = { html: 'index.html', css: 'style.css', js: 'script.js' };
-    activeFileInfo.textContent = `Editing: ${names[lang]}`;
+    const map = { html: 'index.html', css: 'style.css', js: 'script.js' };
+    activeFileInfo.textContent = `Editing: ${map[lang]}`;
     codeEditor.value = files[lang];
     updateCharCount();
   }
@@ -161,36 +118,65 @@ button:hover {
     charCount.textContent = `${codeEditor.value.length} chars`;
   }
 
-  function buildCombinedHTML() {
+  function buildBundleHTML() {
     files[activeTab] = codeEditor.value;
+    const slug = cleanSlug(siteSlug.value);
     let html = files.html || '';
-    const cssBlock = `<style>\n${files.css}\n</style>`;
-    const jsBlock = `<script>\n${files.js}\n<\/script>`;
+
+    const cssTag = `<style>\n${files.css}\n</style>`;
+    const jsTag = `<script>\n${files.js}\n<\/script>`;
 
     if (/<link[^>]+href=["']style\.css["'][^>]*>/i.test(html)) {
-      html = html.replace(/<link[^>]+href=["']style\.css["'][^>]*>/i, cssBlock);
+      html = html.replace(/<link[^>]+href=["']style\.css["'][^>]*>/i, cssTag);
     } else if (/<\/head>/i.test(html)) {
-      html = html.replace(/<\/head>/i, `${cssBlock}\n</head>`);
+      html = html.replace(/<\/head>/i, `${cssTag}\n</head>`);
     } else {
-      html = `${cssBlock}\n${html}`;
+      html = `${cssTag}\n${html}`;
     }
 
     if (/<script[^>]+src=["']script\.js["'][^>]*>\s*<\/script>/i.test(html)) {
-      html = html.replace(/<script[^>]+src=["']script\.js["'][^>]*>\s*<\/script>/i, jsBlock);
+      html = html.replace(/<script[^>]+src=["']script\.js["'][^>]*>\s*<\/script>/i, jsTag);
     } else if (/<\/body>/i.test(html)) {
-      html = html.replace(/<\/body>/i, `${jsBlock}\n</body>`);
+      html = html.replace(/<\/body>/i, `${jsTag}\n</body>`);
     } else {
-      html = `${html}\n${jsBlock}`;
+      html = `${html}\n${jsTag}`;
     }
 
+    html = html.replace(/\/strike-dev/g, `/${slug}`);
     return html;
   }
 
   function renderPreview() {
-    liveFrame.srcdoc = buildCombinedHTML();
+    liveFrame.srcdoc = buildBundleHTML();
   }
 
-  function downloadFile(filename, content, mime = 'text/plain;charset=utf-8') {
+  function deployLive() {
+    const slug = cleanSlug(siteSlug.value);
+    const bundled = buildBundleHTML();
+    liveFrame.srcdoc = bundled;
+
+    if (currentBlobUrl) {
+      URL.revokeObjectURL(currentBlobUrl);
+    }
+
+    const blob = new Blob([bundled], { type: 'text/html;charset=utf-8' });
+    currentBlobUrl = URL.createObjectURL(blob);
+
+    liveUrlLink.href = currentBlobUrl;
+    liveUrlLink.textContent = `${currentBlobUrl} (/${slug})`;
+    btnOpenTab.disabled = false;
+    btnCopyUrl.disabled = false;
+
+    deployStatus.textContent = 'Deployed Live';
+    deployStatus.classList.add('live');
+    buildBadge.textContent = 'LIVE DEPLOYED';
+    buildBadge.classList.add('published');
+    buildSummary.innerHTML = `Deployed at custom path <strong>/${slug}</strong>. Click <strong>Open Tab</strong> to view full screen.`;
+
+    toast(`Deployed live at /${slug}`);
+  }
+
+  function downloadFile(filename, content, mime) {
     const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -202,7 +188,7 @@ button:hover {
     URL.revokeObjectURL(url);
   }
 
-  function handleUploadedFiles(fileList) {
+  function handleUpload(fileList) {
     Array.from(fileList).forEach(file => {
       const ext = file.name.split('.').pop().toLowerCase();
       const reader = new FileReader();
@@ -219,35 +205,42 @@ button:hover {
           switchTab('js');
         }
         renderPreview();
-        toast(`Loaded ${file.name}`);
+        toast(`Uploaded ${file.name}`);
       };
       reader.readAsText(file);
     });
   }
 
-  ghUser.addEventListener('input', updateDomainUI);
-  ghRepo.addEventListener('input', updateDomainUI);
+  siteSlug.addEventListener('input', updateSlugUI);
+
+  btnOpenTab.addEventListener('click', () => {
+    if (currentBlobUrl) {
+      window.open(currentBlobUrl, '_blank', 'noopener,noreferrer');
+    }
+  });
 
   btnCopyUrl.addEventListener('click', () => {
-    navigator.clipboard?.writeText(targetUrlPreview.textContent);
-    toast(`Copied: ${targetUrlPreview.textContent}`);
+    if (currentBlobUrl) {
+      navigator.clipboard?.writeText(currentBlobUrl);
+      toast('Live deployment URL copied');
+    }
   });
 
   document.querySelectorAll('.file-tab').forEach(tab => {
     tab.addEventListener('click', () => switchTab(tab.dataset.lang));
   });
 
-  let previewTimer;
+  let timer;
   codeEditor.addEventListener('input', () => {
     files[activeTab] = codeEditor.value;
     updateCharCount();
-    clearTimeout(previewTimer);
-    previewTimer = setTimeout(renderPreview, 450);
+    clearTimeout(timer);
+    timer = setTimeout(renderPreview, 400);
   });
 
   fileUpload.addEventListener('change', e => {
     if (e.target.files.length) {
-      handleUploadedFiles(e.target.files);
+      handleUpload(e.target.files);
       e.target.value = '';
     }
   });
@@ -261,52 +254,43 @@ button:hover {
     e.preventDefault();
     dropZone.classList.remove('dragover');
     if (e.dataTransfer.files.length) {
-      handleUploadedFiles(e.dataTransfer.files);
+      handleUpload(e.dataTransfer.files);
     }
   });
 
-  btnRefreshPreview.addEventListener('click', () => {
+  btnRunPreview.addEventListener('click', () => {
     renderPreview();
-    toast('Live preview updated');
+    toast('Preview refreshed');
   });
 
-  btnClearCode.addEventListener('click', () => {
+  btnClearTab.addEventListener('click', () => {
     codeEditor.value = '';
     files[activeTab] = '';
     updateCharCount();
     renderPreview();
   });
 
-  btnDeploy.addEventListener('click', () => {
-    renderPreview();
-    const repo = repoNameHint.textContent;
-    toast(`Build ready for ${repo}! Download files below.`);
-  });
+  btnDeployNow.addEventListener('click', deployLive);
 
-  btnDownloadSingle.addEventListener('click', () => {
-    downloadFile('index.html', buildCombinedHTML(), 'text/html;charset=utf-8');
-    toast('Downloaded single bundled index.html');
-  });
-
-  btnDownloadBundle.addEventListener('click', () => {
+  btnDownloadAll.addEventListener('click', () => {
     files[activeTab] = codeEditor.value;
     downloadFile('index.html', files.html, 'text/html;charset=utf-8');
     setTimeout(() => downloadFile('style.css', files.css, 'text/css;charset=utf-8'), 200);
     setTimeout(() => downloadFile('script.js', files.js, 'application/javascript;charset=utf-8'), 400);
-    toast('Downloading index.html, style.css, and script.js...');
+    toast('Downloaded index.html, style.css, and script.js');
   });
 
   btnSample.addEventListener('click', () => {
-    const user = sanitizeSlug(ghUser.value) || 'Dev-Strike';
-    files.html = files.html.replace(/Dev-Strike/g, user);
+    const slug = cleanSlug(siteSlug.value);
+    files.html = files.html.replace(/\/[a-zA-Z0-9-_]+(?=<\/span>)/, `/${slug}`);
     codeEditor.value = files[activeTab];
     updateCharCount();
     renderPreview();
-    toast('Sample template synced with your username');
+    toast('Sample loaded');
   });
 
   codeEditor.value = files.html;
   updateCharCount();
-  updateDomainUI();
+  updateSlugUI();
   renderPreview();
 })();
